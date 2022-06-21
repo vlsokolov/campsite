@@ -15,8 +15,10 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.MvcResult
+import org.springframework.test.web.servlet.delete
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
+import org.springframework.test.web.servlet.put
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -324,6 +326,62 @@ class ReservationControllerTest {
         assertNotNull(newRanges)
         assertNotNull(newRanges.availability)
         assertEquals(2, newRanges.availability.size)
+    }
+
+    @Test
+    fun deleteReservation() {
+        // if reservation is absent it's not an error
+        mockMvc.delete("/reservation/1")
+                .andExpect {
+                    status { isOk() }
+                    content { contentType(MediaType.APPLICATION_JSON) }
+                }
+
+        val postResponse = mockMvc.post("/reservation") {
+            content = objectMapper().writeValueAsString(reservation)
+            contentType = MediaType.APPLICATION_JSON
+        }.andExpect {
+            status { isCreated() }
+            content { contentType(MediaType.APPLICATION_JSON) }
+        }.andReturn()
+
+        val reservationId = getResponseJson(postResponse)?.get("id")
+
+        //delete existing reservation
+        mockMvc.delete("/reservation/$reservationId")
+                .andExpect {
+                    status { isOk() }
+                    content { contentType(MediaType.APPLICATION_JSON) }
+                }
+    }
+
+    @Test
+    fun updateReservation() {
+        mockMvc.put("/reservation/1") {
+            content = objectMapper().writeValueAsString(reservation)
+            contentType = MediaType.APPLICATION_JSON
+        }.andExpect {
+            status { isNotFound() }
+        }
+
+        val postResponse = mockMvc.post("/reservation") {
+            content = objectMapper().writeValueAsString(reservation)
+            contentType = MediaType.APPLICATION_JSON
+        }.andExpect {
+            status { isCreated() }
+            content { contentType(MediaType.APPLICATION_JSON) }
+        }.andReturn()
+
+        val reservationId = getResponseJson(postResponse)?.get("id")
+
+        //delete existing reservation
+        mockMvc.put("/reservation/$reservationId") {
+            content = objectMapper().writeValueAsString(reservation)
+            contentType = MediaType.APPLICATION_JSON
+        }.andExpect {
+            status { isOk() }
+            content { contentType(MediaType.APPLICATION_JSON) }
+        }
     }
 
     @Throws(Exception::class)

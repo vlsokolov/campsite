@@ -52,7 +52,7 @@ class ReservationController(
         }
     }
 
-    @PutMapping("/{reservationId}")
+    @PutMapping("/{reservationId}", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun updateReservation(
             @PathVariable reservationId: Int,
             @Valid @RequestBody dto: ReservationDto
@@ -68,7 +68,9 @@ class ReservationController(
 
     @DeleteMapping("/{reservationId}")
     fun deleteReservation(@PathVariable reservationId: Int): ResponseEntity<Boolean> {
-        reservationService.deleteReservation(reservationId)
+        if (reservationService.isExists(reservationId)) {
+            reservationService.deleteReservation(reservationId)
+        }
         return ResponseEntity.ok(true)
     }
 
