@@ -9,7 +9,7 @@ import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.Table
 
-@Table(name = "reservations")
+@Table(schema = "campsite", name = "reservations")
 @Entity
 data class Reservation(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
