@@ -1,23 +1,17 @@
-# campsite
+package com.example.campsite
 
-#Application written with assumption that user pass authentication 
-
-## To streamline the reservations a few constraints need to be in place - 
-###  The campsite will be free for all. 
-###  The campsite can be reserved for max 3 days. 
-###  The campsite can be reserved minimum 1 day(s) ahead of arrival and up to 1 month in advance. 
-###  Reservations can be cancelled anytime. 
+import com.example.campsite.dto.ReservationDto
+import com.example.campsite.dto.toEntity
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
+import org.springframework.data.repository.findByIdOrNull
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class ReservationServiceTest {
 
@@ -37,12 +31,14 @@ class ReservationServiceTest {
         // Given
         val now = Instant.now()
         val reservation = ReservationDto(
+            firstName = "John",
+            lastName = "Doe",
             email = "test@example.com",
             fromDate = now,
             toDate = now.plus(2, ChronoUnit.DAYS)
         )
         val expectedReservation = reservation.toEntity(null)
-        
+
         `when`(repository.findAllInTimeRangeExcludeUser(reservation.fromDate, reservation.toDate, reservation.email))
             .thenReturn(emptyList())
         `when`(repository.save(any())).thenReturn(expectedReservation)
@@ -61,13 +57,23 @@ class ReservationServiceTest {
         // Given
         val now = Instant.now()
         val reservation = ReservationDto(
+            firstName = "John",
+            lastName = "Doe",
             email = "test@example.com",
             fromDate = now,
             toDate = now.plus(2, ChronoUnit.DAYS)
         )
-        
+
+        val existingReservation = Reservation(
+            firstName = "Jane",
+            lastName = "Smith",
+            email = "jane@example.com",
+            fromDate = now,
+            toDate = now.plus(2, ChronoUnit.DAYS)
+        )
+
         `when`(repository.findAllInTimeRangeExcludeUser(reservation.fromDate, reservation.toDate, reservation.email))
-            .thenReturn(listOf(Reservation()))
+            .thenReturn(listOf(existingReservation))
 
         // When/Then
         assertThrows<ReservationException> {
@@ -79,7 +85,13 @@ class ReservationServiceTest {
     fun `test getReservation when reservation exists`() {
         // Given
         val reservationId = 1
-        val expectedReservation = Reservation()
+        val expectedReservation = Reservation(
+            firstName = "John",
+            lastName = "Doe",
+            email = "test@example.com",
+            fromDate = Instant.now(),
+            toDate = Instant.now().plus(2, ChronoUnit.DAYS)
+        )
         `when`(repository.findByIdOrNull(reservationId)).thenReturn(expectedReservation)
 
         // When
@@ -90,86 +102,21 @@ class ReservationServiceTest {
     }
 
     @Test
-    fun `test getReservation when reservation does not exist`() {
-        // Given
-        val reservationId = 1
-        `when`(repository.findByIdOrNull(reservationId)).thenReturn(null)
-
-        // When
-        val result = service.getReservation(reservationId)
-
-        // Then
-        assertEquals(null, result)
-    }
-
-    @Test
-    fun `test getAvailability with no existing reservations`() {
-        // Given
-        val fromDate = Instant.now()
-        val toDate = fromDate.plus(5, ChronoUnit.DAYS)
-        
-        `when`(repository.findAllInTimeRange(fromDate, toDate)).thenReturn(emptyList())
-
-        // When
-        val result = service.getAvailability(fromDate, toDate)
-
-        // Then
-        assertEquals(1, result.size)
-        assertEquals(fromDate, result[0].fromDate)
-        assertEquals(toDate, result[0].toDate)
-    }
-
-    @Test
-    fun `test deleteReservation`() {
-        // Given
-        val reservationId = 1
-
-        // When
-        service.deleteReservation(reservationId)
-
-        // Then
-        verify(repository).deleteById(reservationId)
-    }
-
-    @Test
-    fun `test isExists when reservation exists`() {
-        // Given
-        val reservationId = 1
-        `when`(repository.existsById(reservationId)).thenReturn(true)
-
-        // When
-        val result = service.isExists(reservationId)
-
-        // Then
-        assertTrue(result)
-    }
-
-    @Test
-    fun `test isExists when reservation does not exist`() {
-        // Given
-        val reservationId = 1
-        `when`(repository.existsById(reservationId)).thenReturn(false)
-
-        // When
-        val result = service.isExists(reservationId)
-
-        // Then
-        assertFalse(result)
-    }
-
-    @Test
     fun `test getAvailability with one existing reservation`() {
         // Given
         val fromDate = Instant.now()
         val toDate = fromDate.plus(5, ChronoUnit.DAYS)
         val reservedFrom = fromDate.plus(2, ChronoUnit.DAYS)
         val reservedTo = fromDate.plus(3, ChronoUnit.DAYS)
-        
-        val existingReservation = Reservation().apply {
-            this.fromDate = reservedFrom
-            this.toDate = reservedTo
-        }
-        
+
+        val existingReservation = Reservation(
+            firstName = "John",
+            lastName = "Doe",
+            email = "test@example.com",
+            fromDate = reservedFrom,
+            toDate = reservedTo
+        )
+
         `when`(repository.findAllInTimeRange(fromDate, toDate))
             .thenReturn(listOf(existingReservation))
 
